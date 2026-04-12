@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body { background-color: #0d1b3e; font-family: 'Inter', sans-serif; color: white; }
+        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px border: white/10; }
+        .status-btn { transition: all 0.3s ease; }
+        .status-pending { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+        .status-shared { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    </style>
+</head>
+<body class="p-8">
+    <div class="max-w-6xl mx-auto">
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-bold tracking-tight">Provincial Monitoring Console</h1>
+                <p class="text-slate-400 text-sm">Real-time submission tracking & registry management</p>
+            </div>
+            <div class="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center border border-white/20">
+                <img src="CURRIMAO.PNG" alt="Logo" class="w-10 h-10 object-cover rounded-full">
+            </div>
+        </div>
+
+        <div class="glass-card rounded-[2rem] overflow-hidden shadow-2xl border border-white/10">
+            <table class="w-full text-left">
+                <thead class="bg-white/5 uppercase text-[10px] tracking-widest font-bold text-slate-400">
+                    <tr>
+                        <th class="px-6 py-4">Chapter / User</th>
+                        <th class="px-6 py-4">Submission Link</th>
+                        <th class="px-6 py-4">Description</th>
+                        <th class="px-6 py-4 text-center">Status Action</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTable" class="divide-y divide-white/5">
+                    <tr><td colspan="4" class="p-10 text-center text-slate-500">Syncing with registry...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Use your existing GAS Web App URL
+        const API_URL = 'YOUR_GOOGLE_SCRIPT_URL';
+
+        async function loadData() {
+            const response = await fetch(`${API_URL}?action=getData`);
+            const data = await response.json();
+            const container = document.getElementById('dataTable');
+            container.innerHTML = '';
+
+            data.forEach((row, index) => {
+                const isShared = row.status === "SHARED";
+                container.innerHTML += `
+                    <tr class="hover:bg-white/5 transition">
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-sm">${row.chapter}</div>
+                            <div class="text-[10px] text-slate-500">${row.name}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <a href="${row.link}" target="_blank" class="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-2">
+                                <i class="fa-solid fa-link text-xs"></i> View Post
+                            </a>
+                        </td>
+                        <td class="px-6 py-4 text-slate-400 text-sm italic">"${row.caption}"</td>
+                        <td class="px-6 py-4 text-center">
+                            <button onclick="toggleStatus(${index + 2}, '${row.status}')" 
+                                class="status-btn px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${isShared ? 'status-shared' : 'status-pending'}">
+                                ${row.status || 'PENDING'}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function toggleStatus(rowId, currentStatus) {
+            const newStatus = currentStatus === "SHARED" ? "PENDING" : "SHARED";
+            fetch(API_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify({ action: 'updateStatus', row: rowId, status: newStatus })
+            }).then(() => loadData());
+        }
+
+        window.onload = loadData;
+    </script>
+</body>
+</html>
