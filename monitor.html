@@ -92,7 +92,7 @@
     </div>
 
     <script>
-        // Replace with your current Deployment Web App URL
+        // CRITICAL: Replace this with your current 'Anyone' Deployment Web App URL
         const API_URL = 'https://script.google.com/macros/s/AKfycbxSmZA6acSmshOi1tGOSmaBEevXN0v0nzH84BRe01XeiNctjgNSrb_g3oRIxTpQJlUI/exec';
 
         async function loadData() {
@@ -124,7 +124,7 @@
                                 </a>
                             </td>
                             <td class="px-8 py-6 text-center">
-                                <button onclick="toggleStatus(${row.rowId}, '${row.status}')" 
+                                <button onclick="toggleStatus(${row.rowId}, '${row.status}', event)" 
                                     class="status-btn px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest ${isShared ? 'status-shared' : 'status-pending'}">
                                     <i class="fa-solid ${isShared ? 'fa-check-circle' : 'fa-clock'} mr-1"></i>
                                     ${row.status || 'PENDING'}
@@ -134,21 +134,25 @@
                     `;
                 });
             } catch (error) {
+                console.error('Sync Error:', error);
                 document.getElementById('dataTable').innerHTML = `
                     <tr>
                         <td colspan="3" class="p-20 text-center">
                             <div class="text-rose-400 font-bold mb-2 uppercase tracking-widest">Connection Error</div>
-                            <div class="text-slate-500 text-xs italic text-balance">Ensure your Web App is deployed as 'Anyone' and the URL is correct.</div>
+                            <div class="text-slate-500 text-xs italic text-balance font-medium">Please check your Apps Script deployment and ensure "Who has access" is set to "Anyone".</div>
                         </td>
                     </tr>`;
             }
         }
 
-        function toggleStatus(rowId, currentStatus) {
+        function toggleStatus(rowId, currentStatus, event) {
+            const btn = event.currentTarget;
             const newStatus = currentStatus === "SHARED" ? "PENDING" : "SHARED";
             
-            // Visual feedback before request finishes
-            event.target.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin"></i> Updating...';
+            // Visual feedback: Spin icon and change text immediately
+            const originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin mr-1"></i> Syncing...';
             
             fetch(API_URL, {
                 method: 'POST',
@@ -160,8 +164,12 @@
                     status: newStatus 
                 })
             }).then(() => {
-                // Short timeout to let GAS finish the write
-                setTimeout(loadData, 800);
+                // Short timeout to allow Google Sheets to process before refreshing
+                setTimeout(loadData, 1000);
+            }).catch(err => {
+                console.error('Update Failed:', err);
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
             });
         }
 
