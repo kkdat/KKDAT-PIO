@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Provincial Chapter Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+
+    <div id="accessModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/80 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 border border-gray-100">
+            <div class="text-center mb-8">
+                <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fa-solid fa-users-rectangle text-blue-600 text-2xl"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-gray-900">Chapter Identification</h2>
+                <p class="text-gray-500 mt-2">Sign in to submit provincial reports</p>
+            </div>
+            
+            <form id="registrationForm" class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Correspondent Name</label>
+                    <input type="text" id="userName" placeholder="Enter your full name" required 
+                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Select Your Chapter</label>
+                    <input list="chapters" id="userChapter" placeholder="Type or select chapter..." required
+                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                    <datalist id="chapters">
+                        <option value="Chapter 1 - North">
+                        <option value="Chapter 2 - South">
+                        <option value="Chapter 3 - East">
+                        <option value="Chapter 4 - West">
+                        </datalist>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200 transition-all active:scale-95">
+                    Access Submission UI
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <main id="mainContent" class="hidden w-full max-w-xl bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100">
+        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 text-white">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h1 class="text-2xl font-bold">Post Link Submission</h1>
+                    <p id="welcomeMessage" class="text-blue-100 text-sm mt-1"></p>
+                </div>
+                <button onclick="location.reload()" class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition">
+                    Switch User
+                </button>
+            </div>
+        </div>
+
+        <form id="submissionForm" class="p-8 space-y-6">
+            <div class="space-y-2">
+                <label class="text-sm font-bold text-gray-700 uppercase tracking-wider">Facebook Link</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 pl-4 flex items-center text-gray-400">
+                        <i class="fa-brands fa-facebook-f"></i>
+                    </span>
+                    <input type="url" id="fbLink" placeholder="https://www.facebook.com/posts/..." required 
+                        class="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 outline-none transition">
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-sm font-bold text-gray-700 uppercase tracking-wider">Brief Description</label>
+                <textarea id="caption" rows="3" placeholder="What is this post about?" 
+                    class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:border-blue-500 outline-none transition"></textarea>
+            </div>
+
+            <button type="submit" id="submitBtn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-emerald-100 transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-paper-plane"></i> Submit to Database
+            </button>
+        </form>
+        
+        <div id="status" class="hidden mx-8 mb-8 p-4 rounded-xl text-center animate-pulse"></div>
+    </main>
+
+    <script>
+        // UI Logic
+        const accessModal = document.getElementById('accessModal');
+        const mainContent = document.getElementById('mainContent');
+        const registrationForm = document.getElementById('registrationForm');
+        const welcomeMessage = document.getElementById('welcomeMessage');
+
+        registrationForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            sessionStorage.setItem('user', document.getElementById('userName').value);
+            sessionStorage.setItem('chapter', document.getElementById('userChapter').value);
+            
+            welcomeMessage.innerText = `${sessionStorage.getItem('chapter')} | Correspondent: ${sessionStorage.getItem('user')}`;
+            accessModal.classList.add('hidden');
+            mainContent.classList.remove('hidden');
+        });
+
+        // Submission Logic
+        document.getElementById('submissionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const status = document.getElementById('status');
+            const btn = document.getElementById('submitBtn');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin"></i> Processing...';
+
+            // Simulate Network Request
+            setTimeout(() => {
+                status.classList.remove('hidden');
+                status.className = "mx-8 mb-8 p-4 rounded-xl text-center bg-emerald-50 text-emerald-700 font-medium border border-emerald-100";
+                status.innerText = "Success! Link has been recorded.";
+                this.reset();
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit to Database';
+            }, 1500);
+        });
+    </script>
+</body>
+</html>
