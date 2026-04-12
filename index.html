@@ -13,33 +13,25 @@
         <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 border border-gray-100">
             <div class="text-center mb-8">
                 <div class="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fa-solid fa-users-rectangle text-blue-600 text-2xl"></i>
+                    <i class="fa-solid fa-key text-blue-600 text-2xl"></i>
                 </div>
-                <h2 class="text-2xl font-bold text-gray-900">Chapter Identification</h2>
-                <p class="text-gray-500 mt-2">Sign in to submit provincial reports</p>
+                <h2 class="text-2xl font-bold text-gray-900">Chapter Access</h2>
+                <p class="text-gray-500 mt-2">Enter your unique chapter passcode</p>
             </div>
             
-            <form id="registrationForm" class="space-y-5">
+            <form id="loginForm" class="space-y-5">
                 <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Correspondent Name</label>
-                    <input type="text" id="userName" placeholder="Enter your full name" required 
-                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
+                    <label class="block text-sm font-semibold text-gray-700 mb-1 text-center">Authentication Code</label>
+                    <input type="password" id="passcode" placeholder="••••" required maxlength="15"
+                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition text-center text-2xl tracking-widest">
                 </div>
-                
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-1">Select Your Chapter</label>
-                    <input list="chapters" id="userChapter" placeholder="Type or select chapter..." required
-                        class="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition">
-                    <datalist id="chapters">
-                        <option value="Chapter 1 - North">
-                        <option value="Chapter 2 - South">
-                        <option value="Chapter 3 - East">
-                        <option value="Chapter 4 - West">
-                        </datalist>
+
+                <div id="loginError" class="hidden text-red-500 text-sm text-center font-medium animate-pulse">
+                    <i class="fa-solid fa-circle-exclamation mr-1"></i> Invalid Passcode
                 </div>
 
                 <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200 transition-all active:scale-95">
-                    Access Submission UI
+                    Verify & Access
                 </button>
             </form>
         </div>
@@ -53,7 +45,7 @@
                     <p id="welcomeMessage" class="text-blue-100 text-sm mt-1"></p>
                 </div>
                 <button onclick="location.reload()" class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition">
-                    Switch User
+                    Logout
                 </button>
             </div>
         </div>
@@ -81,44 +73,91 @@
             </button>
         </form>
         
-        <div id="status" class="hidden mx-8 mb-8 p-4 rounded-xl text-center animate-pulse"></div>
+        <div id="status" class="hidden mx-8 mb-8 p-4 rounded-xl text-center"></div>
     </main>
 
     <script>
-        // UI Logic
+        // --- 1. CONFIGURATION ---
+        // Paste your Google Web App URL here
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwWbO5jcFHW1blWSSQ33a7ARif3gJienYEfU1oVzFz22aPZmq6yrXoo83XpJxeRoAxe/exec';
+
+        const passcodeMap = {
+            "2006-01-24": { name: "WILLIE ASUNCION", chapter: "CURRIMAO CHAPTER" },
+            "C102": { name: "Maria Clara", chapter: "Chapter 2 - South" },
+            "C103": { name: "Jose Rizal", chapter: "Chapter 3 - East" },
+            "C104": { name: "Andres Bonifacio", chapter: "Chapter 4 - West" },
+            "ADM2026": { name: "Head Correspondent", chapter: "Central Office" }
+            // Add your other 18 chapters here
+        };
+
         const accessModal = document.getElementById('accessModal');
         const mainContent = document.getElementById('mainContent');
-        const registrationForm = document.getElementById('registrationForm');
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
         const welcomeMessage = document.getElementById('welcomeMessage');
 
-        registrationForm.addEventListener('submit', (e) => {
+        // --- 2. ACCESS LOGIC ---
+        loginForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            sessionStorage.setItem('user', document.getElementById('userName').value);
-            sessionStorage.setItem('chapter', document.getElementById('userChapter').value);
-            
-            welcomeMessage.innerText = `${sessionStorage.getItem('chapter')} | Correspondent: ${sessionStorage.getItem('user')}`;
-            accessModal.classList.add('hidden');
-            mainContent.classList.remove('hidden');
+            const code = document.getElementById('passcode').value;
+
+            if (passcodeMap[code]) {
+                const userData = passcodeMap[code];
+                sessionStorage.setItem('user', userData.name);
+                sessionStorage.setItem('chapter', userData.chapter);
+                
+                welcomeMessage.innerText = `${userData.chapter} | Correspondent: ${userData.name}`;
+                accessModal.classList.add('hidden');
+                mainContent.classList.remove('hidden');
+            } else {
+                loginError.classList.remove('hidden');
+                document.getElementById('passcode').value = '';
+            }
         });
 
-        // Submission Logic
+        // --- 3. GOOGLE SHEETS SUBMISSION LOGIC ---
         document.getElementById('submissionForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const status = document.getElementById('status');
             const btn = document.getElementById('submitBtn');
 
             btn.disabled = true;
-            btn.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin"></i> Processing...';
+            btn.innerHTML = '<i class="fa-solid fa-circle-notch animate-spin"></i> Uploading to Sheets...';
 
-            // Simulate Network Request
-            setTimeout(() => {
+            // Data payload
+            const formData = {
+                name: sessionStorage.getItem('user'),
+                chapter: sessionStorage.getItem('chapter'),
+                link: document.getElementById('fbLink').value,
+                caption: document.getElementById('caption').value
+            };
+
+            // Send to Google Sheets via fetch
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Important for Google Apps Script
+                cache: 'no-cache',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(formData)
+            })
+            .then(() => {
+                // Since 'no-cors' doesn't return a readable body, we assume success if no error is thrown
                 status.classList.remove('hidden');
-                status.className = "mx-8 mb-8 p-4 rounded-xl text-center bg-emerald-50 text-emerald-700 font-medium border border-emerald-100";
-                status.innerText = "Success! Link has been recorded.";
+                status.className = "mx-8 mb-8 p-4 rounded-xl text-center bg-emerald-50 text-emerald-700 font-medium border border-emerald-100 animate-bounce";
+                status.innerText = "Success! Link recorded in Google Sheets.";
                 this.reset();
+            })
+            .catch(error => {
+                status.classList.remove('hidden');
+                status.className = "mx-8 mb-8 p-4 rounded-xl text-center bg-red-50 text-red-700 font-medium border border-red-100";
+                status.innerText = "Error: Network issue or invalid URL.";
+                console.error('Error!', error);
+            })
+            .finally(() => {
                 btn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Submit to Database';
-            }, 1500);
+                setTimeout(() => status.classList.add('hidden'), 5000);
+            });
         });
     </script>
 </body>
