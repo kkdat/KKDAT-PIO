@@ -15,20 +15,53 @@
         .status-btn { transition: all 0.3s ease; }
         .status-pending { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
         .status-shared { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+        
+        /* Auth Overlay Style */
+        #authOverlay { background: radial-gradient(circle at center, #1e293b 0%, #0d1b3e 100%); }
     </style>
 </head>
 <body class="p-4 md:p-10">
-    <div class="max-w-[1400px] mx-auto">
+
+    <div id="authOverlay" class="fixed inset-0 z-50 flex items-center justify-center p-6">
+        <div class="max-w-md w-full glass-card p-10 rounded-[2.5rem] border border-white/20 shadow-2xl text-center">
+            <div class="w-20 h-20 bg-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-lg">
+                <i class="fa-solid fa-user-shield text-3xl text-white"></i>
+            </div>
+            <h2 class="text-2xl font-black mb-2 tracking-tight">Admin Entry</h2>
+            <p class="text-slate-400 text-sm mb-8">Access restricted to authorized personnel.</p>
+            
+            <form id="authForm" class="space-y-4">
+                <input type="password" id="passInput" placeholder="Enter Passcode" required
+                    class="w-full bg-white/5 border-2 border-white/10 rounded-2xl py-4 px-6 text-center text-xl font-bold tracking-[0.3em] focus:border-indigo-500 focus:outline-none transition-all outline-none">
+                <div id="authError" class="hidden text-rose-500 text-[10px] font-black uppercase tracking-widest bg-rose-500/10 py-2 rounded-lg">
+                    Invalid Passcode
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl hover:bg-indigo-500 transition-all active:scale-95 shadow-xl">
+                    UNLOCK CONSOLE
+                </button>
+            </form>
+            <a href="index.html" class="inline-block mt-8 text-[9px] text-slate-500 font-bold uppercase tracking-widest hover:text-slate-300">
+                <i class="fa-solid fa-arrow-left mr-1"></i> Back to Hub
+            </a>
+        </div>
+    </div>
+
+    <div id="mainContent" class="hidden max-w-[1400px] mx-auto">
         <div class="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
             <div>
                 <h1 class="text-3xl font-black tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">Full Monitoring Registry</h1>
                 <p class="text-slate-400 text-xs font-bold uppercase tracking-widest mt-1 flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Live Data Sync
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> <span id="adminDisplay">Admin Console</span>
                 </p>
             </div>
-            <div class="flex items-center gap-3 bg-white/5 p-2 pr-5 rounded-full border border-white/10">
-                <img src="LOGO.png" alt="Logo" class="w-10 h-10 rounded-full object-cover border border-white/20">
-                <div class="text-left"><div class="text-[9px] font-bold text-slate-500 uppercase">Registry System</div><div class="text-xs font-bold uppercase">Admin Console</div></div>
+            <div class="flex items-center gap-3">
+                 <button onclick="location.reload()" class="mr-4 text-[10px] font-black text-slate-500 hover:text-rose-400 transition-colors uppercase tracking-widest">
+                    <i class="fa-solid fa-power-off mr-1"></i> Logout
+                </button>
+                <div class="flex items-center gap-3 bg-white/5 p-2 pr-5 rounded-full border border-white/10">
+                    <img src="LOGO.png" alt="Logo" class="w-10 h-10 rounded-full object-cover border border-white/20">
+                    <div class="text-left"><div class="text-[9px] font-bold text-slate-500 uppercase">Registry System</div><div class="text-xs font-bold uppercase">Admin Console</div></div>
+                </div>
             </div>
         </div>
 
@@ -57,6 +90,37 @@
     <script>
         const API_URL = 'https://script.google.com/macros/s/AKfycbxSmZA6acSmshOi1tGOSmaBEevXN0v0nzH84BRe01XeiNctjgNSrb_g3oRIxTpQJlUI/exec';
 
+        // Authorized Users
+        const authorizedUsers = {
+            "2009-05-13": "XYBERGHTEIN EURY VALERA",
+            "1996-11-06": "DARWIN AGULLANA"
+        };
+
+        const authForm = document.getElementById('authForm');
+        const authOverlay = document.getElementById('authOverlay');
+        const mainContent = document.getElementById('mainContent');
+        const authError = document.getElementById('authError');
+        const adminDisplay = document.getElementById('adminDisplay');
+
+        // Handle Authentication
+        authForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const passcode = document.getElementById('passInput').value;
+
+            if (authorizedUsers[passcode]) {
+                adminDisplay.innerText = `Welcome, ${authorizedUsers[passcode]}`;
+                authOverlay.classList.add('hidden');
+                mainContent.classList.remove('hidden');
+                loadData(); // Start loading data only after login
+            } else {
+                authError.classList.remove('hidden');
+                document.getElementById('passInput').value = '';
+                // Simple vibration/shake effect
+                authForm.classList.add('translate-x-1');
+                setTimeout(() => authForm.classList.remove('translate-x-1'), 100);
+            }
+        });
+
         async function loadData() {
             try {
                 const response = await fetch(`${API_URL}?action=getData`);
@@ -71,7 +135,6 @@
 
                 data.forEach((row) => {
                     const isShared = row.status === "SHARED";
-                    // Format Date
                     const date = new Date(row.timestamp).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                     
                     container.innerHTML += `
@@ -113,8 +176,6 @@
                 body: JSON.stringify({ action: 'updateStatus', row: rowId, status: newStatus })
             }).then(() => setTimeout(loadData, 1000));
         }
-
-        window.onload = loadData;
     </script>
 </body>
 </html>
