@@ -20,7 +20,6 @@
         #authOverlay { background: radial-gradient(circle at center, #1e293b 0%, #0d1b3e 100%); }
         .filter-pill.active { background: rgba(79, 70, 229, 0.2); border-color: rgba(99, 102, 241, 0.5); color: white; }
         
-        /* Custom styling for select dropdowns to match your UI */
         select option { background: #1e293b; color: white; }
     </style>
 </head>
@@ -59,6 +58,11 @@
                 </p>
             </div>
             <div class="flex items-center gap-3">
+                 <div class="flex items-center bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-full mr-2">
+                    <span class="text-[9px] font-black text-indigo-400 uppercase tracking-tighter mr-2">Results:</span>
+                    <span id="dataCounter" class="text-xs font-black text-white">0</span>
+                 </div>
+
                  <button onclick="location.reload()" class="mr-4 text-[10px] font-black text-slate-500 hover:text-rose-400 transition-colors uppercase tracking-widest">
                     <i class="fa-solid fa-power-off mr-1"></i> Logout
                 </button>
@@ -190,6 +194,7 @@
 
         function renderTable() {
             const container = document.getElementById('dataTable');
+            const counterDisplay = document.getElementById('dataCounter');
             const searchQuery = document.getElementById('chapterSearch').value.toLowerCase();
             const selectedYear = document.getElementById('yearFilter').value;
             const selectedMonth = document.getElementById('monthFilter').value;
@@ -197,25 +202,25 @@
             container.innerHTML = '';
 
             const filteredData = cachedData.filter(row => {
-                // Status Filter
                 const status = row.status || 'PENDING';
                 const matchesStatus = (currentFilter === 'ALL' || status === currentFilter);
                 
-                // Search Filter
                 const chapter = (row.chapter || '').toLowerCase();
                 const name = (row.name || '').toLowerCase();
                 const matchesSearch = chapter.includes(searchQuery) || name.includes(searchQuery);
 
-                // Date Filter logic
                 const rowDate = new Date(row.timestamp);
                 const rowYear = rowDate.getFullYear().toString();
-                const rowMonth = rowDate.getMonth().toString(); // 0-indexed
+                const rowMonth = rowDate.getMonth().toString();
 
                 const matchesYear = (selectedYear === 'ALL' || rowYear === selectedYear);
                 const matchesMonth = (selectedMonth === 'ALL' || rowMonth === selectedMonth);
 
                 return matchesStatus && matchesSearch && matchesYear && matchesMonth;
             });
+
+            // Update Counter
+            counterDisplay.innerText = filteredData.length;
 
             if (filteredData.length === 0) {
                 container.innerHTML = '<tr><td colspan="5" class="p-20 text-center text-slate-500 font-bold uppercase tracking-widest">No matching results found.</td></tr>';
@@ -225,15 +230,9 @@
             filteredData.forEach((row) => {
                 const statusVal = row.status || 'PENDING';
                 const isShared = statusVal === "SHARED";
-                
-                // Format date for display
                 const d = new Date(row.timestamp);
                 const dateString = d.toLocaleString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric', 
-                    year: 'numeric',
-                    hour: '2-digit', 
-                    minute: '2-digit' 
+                    month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' 
                 });
                 
                 container.innerHTML += `
